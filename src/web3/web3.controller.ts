@@ -9,6 +9,9 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@app/web3/guards/auth.guard';
+import { GetBalanceDto } from './dto/getBalance.dto';
+import { SendTransactionDto } from './dto/sendTransaction.dto';
+import { Web3Service } from './web3.service';
 
 @Controller()
 export class Web3Controller {
