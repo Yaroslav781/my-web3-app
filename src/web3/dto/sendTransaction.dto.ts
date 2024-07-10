@@ -27,4 +27,8 @@ export class SendTransactionDto {
   @IsNotEmpty()
   @IsString()
   privateKey: string;
+
+  @IsNotEmpty()
+  @IsString()
+  signature: string;
 }

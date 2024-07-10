@@ -15,13 +15,12 @@ export class Web3Service {
     this.abi = erc20Abi;
   }
 
-  isValidPrivateKey(privateKey: string): boolean {
-    try {
-      this.web3.eth.accounts.privateKeyToAccount(privateKey);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  hashMessage(message: string): string {
+    return this.web3.utils.sha3(message);
+  }
+
+  recoverSignerAddress(messageHash: string, signature: string): string {
+    return this.web3.eth.accounts.recover(messageHash, signature);
   }
 
   async getBalance(tokenAddress: string, userAddress: string): Promise<string> {

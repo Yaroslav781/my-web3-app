@@ -1,14 +1,15 @@
 import {
+  BadRequestException,
   Body,
+  Headers,
   Controller,
   Get,
   Param,
   Post,
-  UseGuards,
+  UnauthorizedException,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { AuthGuard } from '@app/web3/guards/auth.guard';
 import { GetBalanceDto } from './dto/getBalance.dto';
 import { SendTransactionDto } from './dto/sendTransaction.dto';
 import { Web3Service } from './web3.service';
@@ -18,7 +19,6 @@ export class Web3Controller {
   constructor(private readonly web3Service: Web3Service) {}
 
   @Get('balance/:tokenAddress/:userAddress')
-  @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe())
   async getBalance(@Param() params: GetBalanceDto): Promise<string> {
     const { tokenAddress, userAddress } = params;
@@ -30,20 +30,33 @@ export class Web3Controller {
   }
 
   @Post('send')
-  @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe())
   async sendTransaction(
     @Body() sendTransactionDto: SendTransactionDto,
+    @Headers('Authorization') authHeader: string,
   ): Promise<{ transactionHash: string }> {
-    const { token_addr, user_addr, recipient_addr, amount } =
+    const { token_addr, user_addr, recipient_addr, amount, signature } =
       sendTransactionDto;
-    const transactionHash = await this.web3Service.sendTransaction(
-      token_addr,
-      user_addr,
-      recipient_addr,
-      amount,
-      sendTransactionDto.privateKey,
+    const message = this.web3Service.hashMessage(user_addr);
+    const signerAddress = this.web3Service.recoverSignerAddress(
+      message,
+      signature,
     );
-    return { transactionHash };
+    if (signerAddress.toLowerCase() !== user_addr.toLowerCase()) {
+      throw new UnauthorizedException('Invalid signature');
+    }
+
+    try {
+      const transactionHash = await this.web3Service.sendTransaction(
+        token_addr,
+        user_addr,
+        recipient_addr,
+        amount,
+        authHeader,
+      );
+      return { transactionHash };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }
